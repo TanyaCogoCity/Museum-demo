@@ -1,15 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Museum Visitor Intelligence</title>
+  <title>Museum Visitor Intelligence Demo</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body { font-family: Arial; padding:20px; background:#f5f7fb; }
     .card { background:white; padding:15px; margin:15px 0; border-radius:10px; }
     input, select { width:100%; margin:5px 0; padding:8px; }
-    button { padding:10px; background:green; color:white; border:none; border-radius:6px; }
+    button { padding:10px; background:#4CAF50; color:white; border:none; border-radius:6px; }
     .hidden { display:none; }
   </style>
 </head>
@@ -17,7 +16,6 @@
 <body>
 
 <h2>Museum Visitor Intelligence</h2>
-
 <button onclick="showAdmin()">Admin</button>
 
 <div id="home" class="card">
@@ -29,6 +27,7 @@
     <option>Walk-by</option>
     <option>Google</option>
     <option>Social</option>
+    <option>Friend</option>
     <option>Event</option>
   </select>
 
@@ -57,23 +56,43 @@
 
 <script>
 
-let data = [];
+// ---- DEMO DATA GENERATION ----
 
-try {
-  data = JSON.parse(localStorage.getItem("museumData")) || [];
-} catch(e){
-  data = [];
+let sources = ["Walk-by","Google","Social","Friend","Event"];
+
+function generateDemoData(){
+  let arr = [];
+
+  for(let i=0;i<500;i++){
+    let daysAgo = Math.floor(Math.random()*90);
+    let date = new Date();
+    date.setDate(date.getDate()-daysAgo);
+
+    arr.push({
+      source: sources[Math.floor(Math.random()*sources.length)],
+      date: date
+    });
+  }
+
+  return arr;
 }
 
+let data = JSON.parse(localStorage.getItem("museumData"));
+
+if(!data || data.length === 0){
+  data = generateDemoData();
+  localStorage.setItem("museumData", JSON.stringify(data));
+}
+
+// ---- FUNCTIONS ----
+
 function addVisitor(){
-  const entry = {
+  data.push({
     source: document.getElementById("source").value,
     date: new Date()
-  };
+  });
 
-  data.push(entry);
   localStorage.setItem("museumData", JSON.stringify(data));
-
   alert("Visitor added!");
 }
 
@@ -87,8 +106,6 @@ function login(){
     document.getElementById("login").classList.add("hidden");
     document.getElementById("admin").classList.remove("hidden");
     render();
-  } else {
-    alert("Wrong password");
   }
 }
 
@@ -117,11 +134,7 @@ function render(){
     window.chartInstance.destroy();
   }
 
-  const ctx = document.getElementById("chart");
-
-  if(!ctx) return;
-
-  window.chartInstance = new Chart(ctx, {
+  window.chartInstance = new Chart(document.getElementById("chart"), {
     type:'bar',
     data:{
       labels:Object.keys(counts),
