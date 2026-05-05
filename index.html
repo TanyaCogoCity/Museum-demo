@@ -1,42 +1,52 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Museum Demo</title>
+  <title>Museum Visitor Intelligence</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
-    body { font-family: Arial; padding:20px; background:#f5f7fb; }
-    .card { background:white; padding:15px; margin:15px 0; border-radius:10px; }
-    input, select { width:100%; margin:5px 0; padding:8px; }
-    button { padding:10px; background:green; color:white; border:none; border-radius:6px; }
+    body { font-family: Arial; background:#f5f7fb; margin:20px; }
+    .card { background:white; padding:20px; margin-bottom:20px; border-radius:10px; }
+    input, select { width:100%; padding:8px; margin:5px 0; }
+    button { padding:10px 15px; background:#4CAF50; color:white; border:none; border-radius:6px; }
     .hidden { display:none; }
+    .topbar { display:flex; justify-content:space-between; }
   </style>
 </head>
 
 <body>
 
-<h2>Museum Visitor Intelligence</h2>
+<div class="topbar">
+  <h2>Museum Visitor Intelligence</h2>
+  <button onclick="showAdmin()">Admin</button>
+</div>
 
-<button onclick="showAdmin()">Admin</button>
-
+<!-- HOME -->
 <div id="home" class="card">
   <h3>Visitor Check-In</h3>
 
-  <input id="name" placeholder="Name">
+  <input id="name" placeholder="First Name">
+  <input id="email" placeholder="Email">
+  <input id="zip" placeholder="ZIP">
+
   <select id="source">
     <option>Walk-by</option>
     <option>Google</option>
     <option>Social</option>
+    <option>Friend</option>
     <option>Event</option>
   </select>
 
-  <button onclick="addVisitor()">Submit</button>
+  <button onclick="submitVisitor()">Submit</button>
 </div>
 
+<!-- LOGIN -->
 <div id="login" class="card hidden">
   <input id="pass" type="password" placeholder="Password">
   <button onclick="login()">Login</button>
 </div>
 
+<!-- ADMIN -->
 <div id="admin" class="hidden">
 
   <div class="card">
@@ -54,16 +64,18 @@
 
 <script>
 
-let data = JSON.parse(localStorage.getItem("data") || "[]");
+let data = JSON.parse(localStorage.getItem("museumData") || "[]");
 
-function addVisitor(){
-  data.push({
+function submitVisitor(){
+  const entry = {
     source: document.getElementById("source").value,
     date: new Date()
-  });
+  };
 
-  localStorage.setItem("data", JSON.stringify(data));
-  alert("Added");
+  data.push(entry);
+  localStorage.setItem("museumData", JSON.stringify(data));
+
+  alert("Visitor added!");
 }
 
 function showAdmin(){
@@ -76,6 +88,8 @@ function login(){
     document.getElementById("login").classList.add("hidden");
     document.getElementById("admin").classList.remove("hidden");
     render();
+  } else {
+    alert("Wrong password");
   }
 }
 
@@ -95,20 +109,25 @@ function render(){
   let dataset = getFiltered();
 
   let counts = {};
+
   dataset.forEach(d=>{
     counts[d.source] = (counts[d.source]||0)+1;
   });
 
-  if(window.chart) window.chart.destroy();
+  if(window.chartInstance){
+    window.chartInstance.destroy();
+  }
 
-  window.chart = new Chart(document.getElementById("chart"), {
+  window.chartInstance = new Chart(document.getElementById("chart"), {
     type:'bar',
     data:{
       labels:Object.keys(counts),
-      datasets:[{ data:Object.values(counts) }]
+      datasets:[{
+        label:"Visitors",
+        data:Object.values(counts)
+      }]
     }
   });
-
 }
 
 </script>
