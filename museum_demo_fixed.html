@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Museum Visitor Intelligence</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { font-family: Arial; background:#f5f7fb; margin:20px; }
+    .card { background:white; padding:20px; margin-bottom:20px; border-radius:10px; }
+    input, select { width:100%; padding:8px; margin:5px 0; }
+    button { padding:10px 15px; background:#4CAF50; color:white; border:none; border-radius:6px; cursor:pointer; }
+    .hidden { display:none; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; }
+    canvas { max-width:100%; }
+  </style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <h2>Museum Visitor Intelligence</h2>
+  <button onclick="showAdmin()">Admin</button>
+</div>
+
+<div id="home" class="card">
+  <h3>Visitor Check-In</h3>
+  <input id="name" placeholder="First Name">
+
+  <select id="source">
+    <option>Walk-by</option>
+    <option>Google</option>
+    <option>Social</option>
+    <option>Friend</option>
+    <option>Event</option>
+  </select>
+
+  <button onclick="submitVisitor()">Submit</button>
+</div>
+
+<div id="login" class="card hidden">
+  <input id="pass" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="admin" class="hidden">
+
+  <div class="card">
+    <h3>Date Filter</h3>
+    <input type="date" id="startDate">
+    <input type="date" id="endDate">
+    <button onclick="applyDateFilter()">Apply</button>
+  </div>
+
+  <div class="card">
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>Insights</h3>
+    <ul id="insights"></ul>
+  </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+let sources = ["Walk-by","Google","Social","Friend","Event"];
+
+function generateDemoData(){
+  let arr = [];
+  for(let i=0;i<500;i++){
+    let d = new Date();
+    d.setDate(d.getDate() - Math.floor(Math.random()*90));
+    arr.push({
+      source: sources[Math.floor(Math.random()*sources.length)],
+      date: d
+    });
+  }
+  return arr;
+}
+
+let data = JSON.parse(localStorage.getItem("museumData"));
+if(!data || data.length === 0){
+  data = generateDemoData();
+  localStorage.setItem("museumData", JSON.stringify(data));
+}
+
+let filteredData = null;
+
+window.submitVisitor = function(){
+  data.push({
+    source: document.getElementById("source").value,
+    date: new Date()
+  });
+
+  localStorage.setItem("museumData", JSON.stringify(data));
+  alert("Visitor added!");
+}
+
+window.showAdmin = function(){
+  document.getElementById("home").classList.add("hidden");
+  document.getElementById("login").classList.remove("hidden");
+}
+
+window.login = function(){
+  if(document.getElementById("pass").value === "demo"){
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("admin").classList.remove("hidden");
+
+    filteredData = null;
+
+    setTimeout(() => {
+      updateDashboard();
+    }, 100);
+
+  } else {
+    alert("Wrong password");
+  }
+}
+
+window.applyDateFilter = function(){
+  let start = new Date(document.getElementById("startDate").value);
+  let end = new Date(document.getElementById("endDate").value);
+
+  filteredData = data.filter(d=>{
+    let date = new Date(d.date);
+
+    return (!isNaN(start) ? date >= start : true) &&
+           (!isNaN(end) ? date <= end : true);
+  });
+
+  updateDashboard();
+}
+
+function getDataset(){
+  return filteredData || data;
+}
+
+function updateDashboard(){
+  renderChart();
+  renderInsights();
+}
+
+function renderChart(){
+  let dataset = getDataset();
+
+  let counts = {};
+  dataset.forEach(d=>{
+    counts[d.source] = (counts[d.source]||0)+1;
+  });
+
+  if(window.chartInstance){
+    window.chartInstance.destroy();
+  }
+
+  window.chartInstance = new Chart(document.getElementById("chart"), {
+    type:'bar',
+    data:{
+      labels:Object.keys(counts),
+      datasets:[{
+        label:"Visitors",
+        data:Object.values(counts)
+      }]
+    }
+  });
+
+  setTimeout(() => {
+    window.chartInstance.resize();
+  }, 200);
+}
+
+function renderInsights(){
+  let dataset = getDataset();
+
+  let total = dataset.length;
+
+  let counts = {};
+  dataset.forEach(d=>{
+    counts[d.source] = (counts[d.source]||0)+1;
+  });
+
+  let topSource = Object.keys(counts).reduce((a,b)=>counts[a]>counts[b]?a:b,"");
+
+  document.getElementById("insights").innerHTML = `
+    <li>Total visitors: ${total}</li>
+    <li>Top source: ${topSource}</li>
+    <li>Recommendation: Increase focus on ${topSource}</li>
+  `;
+}
+
+});
+</script>
+
+</body>
+</html>
