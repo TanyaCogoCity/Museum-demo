@@ -162,122 +162,69 @@
 
 <script>
 
-let data = JSON.parse(localStorage.getItem("data") || "[]");
+let data = JSON.parse(localStorage.getItem("museumData") || "[]");
 
 function submitVisitor(){
   const entry = {
-    name: name.value,
-    email: email.value,
-    zip: zip.value,
-    source: source.value,
-    type: type.value,
-    first: first.value,
+    name: document.getElementById("name").value,
+    email: document.getElementById("email").value,
+    zip: document.getElementById("zip").value,
+    source: document.getElementById("source").value,
+    type: document.getElementById("type").value,
+    first: document.getElementById("first").value,
     date: new Date()
   };
 
   data.push(entry);
-  localStorage.setItem("data", JSON.stringify(data));
+  localStorage.setItem("museumData", JSON.stringify(data));
 
   alert("Visitor added!");
 }
 
-function showAdmin(){
-  home.classList.add("hidden");
-  login.classList.remove("hidden");
-}
+function getFilteredData(){
+  const start = new Date(document.getElementById("startDate")?.value);
+  const end = new Date(document.getElementById("endDate")?.value);
 
-function login(){
-  if(pass.value === "demo"){
-    login.classList.add("hidden");
-    admin.classList.remove("hidden");
-    render(data);
-  } else {
-    alert("Wrong password");
-  }
-}
-
-function previewAlert(){
-  alert("Preview mode. Upload enabled in full version.");
-}
-
-function applyDateFilter(){
-  const start = new Date(startDate.value);
-  const end = new Date(endDate.value);
-
-  const filtered = data.filter(d=>{
+  return data.filter(d=>{
     const date = new Date(d.date);
     return (!isNaN(start)? date>=start:true) &&
            (!isNaN(end)? date<=end:true);
   });
-
-  render(filtered);
 }
 
-function render(dataset){
+function updateDashboard(){
 
-  if(window.chart1Instance) window.chart1Instance.destroy();
-  if(window.chart2Instance) window.chart2Instance.destroy();
+  const dataset = getFilteredData();
 
-  // TABLE
-  let html = "<tr><th>Name</th><th>Source</th><th>Date</th></tr>";
-  dataset.forEach(d=>{
-    html += `<tr><td>${d.name}</td><td>${d.source}</td><td>${new Date(d.date).toLocaleDateString()}</td></tr>`;
-  });
-  table.innerHTML = html;
-
-  // SOURCE
   let sources = {};
+  let days = {};
+  let hours = {};
+
   dataset.forEach(d=>{
     sources[d.source] = (sources[d.source]||0)+1;
+
+    let day = new Date(d.date).toLocaleDateString('en-US',{ weekday:'long' });
+    days[day] = (days[day]||0)+1;
+
+    let hour = new Date(d.date).getHours();
+    hours[hour] = (hours[hour]||0)+1;
   });
 
-  window.chart1Instance = new Chart(chart1, {
-    type:'bar',
-    data:{
-      labels:Object.keys(sources),
-      datasets:[{ data:Object.values(sources) }]
-    }
+  console.log("Updated Data:", dataset);
+
+  // Example: update numbers (you can connect to UI elements)
+  document.querySelectorAll("[data-total]").forEach(el=>{
+    el.innerText = dataset.length;
   });
-
-  // DAY
-  let days = {};
-  dataset.forEach(d=>{
-    let day = new Date(d.date).toLocaleDateString();
-    days[day]=(days[day]||0)+1;
-  });
-
-  window.chart2Instance = new Chart(chart2, {
-    type:'line',
-    data:{
-      labels:Object.keys(days),
-      datasets:[{ data:Object.values(days) }]
-    }
-  });
-
-  // INSIGHTS
-  let total = dataset.length;
-  let topSource = Object.keys(sources).reduce((a,b)=>sources[a]>sources[b]?a:b, "");
-
-  insights.innerHTML = `
-    <li>Total visitors: ${total}</li>
-    <li>Top acquisition channel: ${topSource}</li>
-    <li>Recommendation: Increase focus on ${topSource}</li>
-  `;
 }
 
-function downloadCSV(){
-  let csv = "Name,Source,Date\n";
-  data.forEach(d=>{
-    csv += `${d.name},${d.source},${d.date}\n`;
-  });
-
-  let blob = new Blob([csv]);
-  let a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "data.csv";
-  a.click();
+function applyDateFilter(){
+  updateDashboard();
 }
 
+window.onload = function(){
+  updateDashboard();
+};
 </script>
 
 </body>
