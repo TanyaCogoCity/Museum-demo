@@ -1,1 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Museum Visitor Intelligence</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <style>
+    body { font-family: Arial; background:#f5f7fb; margin:20px; }
+    h2 { margin:0; }
+
+    .card {
+      background:white;
+      padding:20px;
+      border-radius:10px;
+      margin-bottom:20px;
+      box-shadow:0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    input, select {
+      width:100%;
+      padding:8px;
+      margin:6px 0;
+    }
+
+    button {
+      padding:10px 15px;
+      border:none;
+      border-radius:6px;
+      background:#4CAF50;
+      color:white;
+      cursor:pointer;
+    }
+
+    .disabled-feature {
+      opacity:0.6;
+      cursor:not-allowed;
+    }
+
+    .hidden { display:none; }
+
+    .topbar {
+      display:flex;
+      justify-content:space-between;
+      margin-bottom:20px;
+    }
+
+    table {
+      width:100%;
+      border-collapse: collapse;
+      font-size:12px;
+    }
+
+    td, th {
+      border-bottom:1px solid #ddd;
+      padding:6px;
+    }
+
+    .notice {
+      background:#eef3ff;
+      padding:10px;
+      border-radius:8px;
+      margin-bottom:10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <h2>Museum Visitor Intelligence</h2>
+  <button onclick="showAdmin()">Admin</button>
+</div>
+
+<!-- HOME -->
+<div id="home" class="card">
+  <h3>Visitor Check-In</h3>
+
+  <input placeholder="First Name" id="name">
+  <input placeholder="Email" id="email">
+  <input placeholder="ZIP / Country" id="zip">
+
+  <select id="source">
+    <option>Walk-by</option>
+    <option>Google</option>
+    <option>Social Media</option>
+    <option>Friend/Family</option>
+    <option>Event</option>
+  </select>
+
+  <select id="type">
+    <option>General visit</option>
+    <option>Specific exhibit</option>
+    <option>Event</option>
+  </select>
+
+  <select id="first">
+    <option>Yes</option>
+    <option>No</option>
+  </select>
+
+  <button onclick="submitVisitor()">Submit</button>
+</div>
+
+<!-- LOGIN -->
+<div id="login" class="card hidden">
+  <h3>Admin Login</h3>
+  <input type="password" id="pass">
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- ADMIN -->
+<div id="admin" class="hidden">
+
+  <div class="notice">
+    🔒 Preview Mode — limited functionality
+  </div>
+
+  <div class="notice">
+    👉 Add visitors and use date filter to see insights update
+  </div>
+
+  <!-- DATE FILTER -->
+  <div class="card">
+    <h3>Date Filter</h3>
+    <label>From</label>
+    <input type="date" id="startDate">
+    <label>To</label>
+    <input type="date" id="endDate">
+    <button onclick="applyDateFilter()">Apply</button>
+  </div>
+
+  <div class="card">
+    <button onclick="downloadCSV()">Download CSV</button>
+    <button class="disabled-feature" onclick="previewAlert()">
+      🔒 Upload CSV (Preview Mode)
+    </button>
+    <br><br>
+    <input type="file" disabled class="disabled-feature">
+  </div>
+
+  <div class="card">
+    <h3>Visitors by Source</h3>
+    <canvas id="chart1"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>Visits by Day</h3>
+    <canvas id="chart2"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>Insights</h3>
+    <ul id="insights"></ul>
+  </div>
+
+  <div class="card">
+    <h3>Raw Data</h3>
+    <table id="table"></table>
+  </div>
+
+</div>
+
+<script>
+
+let data = JSON.parse(localStorage.getItem("data") || "[]");
+
+function submitVisitor(){
+  const entry = {
+    name: name.value,
+    email: email.value,
+    zip: zip.value,
+    source: source.value,
+    type: type.value,
+    first: first.value,
+    date: new Date()
+  };
+
+  data.push(entry);
+  localStorage.setItem("data", JSON.stringify(data));
+
+  alert("Visitor added!");
+}
+
+function showAdmin(){
+  home.classList.add("hidden");
+  login.classList.remove("hidden");
+}
+
+function login(){
+  if(pass.value === "demo"){
+    login.classList.add("hidden");
+    admin.classList.remove("hidden");
+    render(data);
+  } else {
+    alert("Wrong password");
+  }
+}
+
+function previewAlert(){
+  alert("Preview mode. Upload enabled in full version.");
+}
+
+function applyDateFilter(){
+  const start = new Date(startDate.value);
+  const end = new Date(endDate.value);
+
+  const filtered = data.filter(d=>{
+    const date = new Date(d.date);
+    return (!isNaN(start)? date>=start:true) &&
+           (!isNaN(end)? date<=end:true);
+  });
+
+  render(filtered);
+}
+
+function render(dataset){
+
+  if(window.chart1Instance) window.chart1Instance.destroy();
+  if(window.chart2Instance) window.chart2Instance.destroy();
+
+  // TABLE
+  let html = "<tr><th>Name</th><th>Source</th><th>Date</th></tr>";
+  dataset.forEach(d=>{
+    html += `<tr><td>${d.name}</td><td>${d.source}</td><td>${new Date(d.date).toLocaleDateString()}</td></tr>`;
+  });
+  table.innerHTML = html;
+
+  // SOURCE
+  let sources = {};
+  dataset.forEach(d=>{
+    sources[d.source] = (sources[d.source]||0)+1;
+  });
+
+  window.chart1Instance = new Chart(chart1, {
+    type:'bar',
+    data:{
+      labels:Object.keys(sources),
+      datasets:[{ data:Object.values(sources) }]
+    }
+  });
+
+  // DAY
+  let days = {};
+  dataset.forEach(d=>{
+    let day = new Date(d.date).toLocaleDateString();
+    days[day]=(days[day]||0)+1;
+  });
+
+  window.chart2Instance = new Chart(chart2, {
+    type:'line',
+    data:{
+      labels:Object.keys(days),
+      datasets:[{ data:Object.values(days) }]
+    }
+  });
+
+  // INSIGHTS
+  let total = dataset.length;
+  let topSource = Object.keys(sources).reduce((a,b)=>sources[a]>sources[b]?a:b, "");
+
+  insights.innerHTML = `
+    <li>Total visitors: ${total}</li>
+    <li>Top acquisition channel: ${topSource}</li>
+    <li>Recommendation: Increase focus on ${topSource}</li>
+  `;
+}
+
+function downloadCSV(){
+  let csv = "Name,Source,Date\n";
+  data.forEach(d=>{
+    csv += `${d.name},${d.source},${d.date}\n`;
+  });
+
+  let blob = new Blob([csv]);
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "data.csv";
+  a.click();
+}
+
+</script>
+
+</body>
+</html>
