@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Museum Visitor Intelligence</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { font-family: Arial; padding:20px; background:#f5f7fb; }
+    .card { background:white; padding:15px; margin:15px 0; border-radius:10px; }
+    input, select { width:100%; margin:5px 0; padding:8px; }
+    button { padding:10px; background:green; color:white; border:none; border-radius:6px; }
+    .hidden { display:none; }
+  </style>
+</head>
+
+<body>
+
+<h2>Museum Visitor Intelligence</h2>
+
+<button onclick="showAdmin()">Admin</button>
+
+<div id="home" class="card">
+  <h3>Visitor Check-In</h3>
+
+  <input id="name" placeholder="Name">
+
+  <select id="source">
+    <option>Walk-by</option>
+    <option>Google</option>
+    <option>Social</option>
+    <option>Event</option>
+  </select>
+
+  <button onclick="addVisitor()">Submit</button>
+</div>
+
+<div id="login" class="card hidden">
+  <input id="pass" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="admin" class="hidden">
+
+  <div class="card">
+    <h3>Date Filter</h3>
+    <input type="date" id="start">
+    <input type="date" id="end">
+    <button onclick="render()">Apply</button>
+  </div>
+
+  <div class="card">
+    <canvas id="chart"></canvas>
+  </div>
+
+</div>
+
+<script>
+
+let data = [];
+
+try {
+  data = JSON.parse(localStorage.getItem("museumData")) || [];
+} catch(e){
+  data = [];
+}
+
+function addVisitor(){
+  const entry = {
+    source: document.getElementById("source").value,
+    date: new Date()
+  };
+
+  data.push(entry);
+  localStorage.setItem("museumData", JSON.stringify(data));
+
+  alert("Visitor added!");
+}
+
+function showAdmin(){
+  document.getElementById("home").classList.add("hidden");
+  document.getElementById("login").classList.remove("hidden");
+}
+
+function login(){
+  if(document.getElementById("pass").value === "demo"){
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("admin").classList.remove("hidden");
+    render();
+  } else {
+    alert("Wrong password");
+  }
+}
+
+function getFiltered(){
+  let start = new Date(document.getElementById("start").value);
+  let end = new Date(document.getElementById("end").value);
+
+  return data.filter(d=>{
+    let date = new Date(d.date);
+    return (!isNaN(start)?date>=start:true) &&
+           (!isNaN(end)?date<=end:true);
+  });
+}
+
+function render(){
+
+  let dataset = getFiltered();
+
+  let counts = {};
+
+  dataset.forEach(d=>{
+    counts[d.source] = (counts[d.source]||0)+1;
+  });
+
+  if(window.chartInstance){
+    window.chartInstance.destroy();
+  }
+
+  const ctx = document.getElementById("chart");
+
+  if(!ctx) return;
+
+  window.chartInstance = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:Object.keys(counts),
+      datasets:[{
+        label:"Visitors",
+        data:Object.values(counts)
+      }]
+    }
+  });
+}
+
+</script>
+
+</body>
+</html>
