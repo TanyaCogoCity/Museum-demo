@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Dashboard</title>
+</head>
+<body>
+
+<h1>Test Works</h1>
+<button onclick="test()">Click me</button>
+
+<script>
+function test(){
+  alert("JS works!");
+}
+</script>
+
+</body>
+</html>
