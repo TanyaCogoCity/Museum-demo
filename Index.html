@@ -108,16 +108,11 @@
   <button onclick="login()">Login</button>
 </div>
 
-<!-- ADMIN -->
+<!-- ADMIN DASHBOARD -->
 <div id="admin" class="hidden">
 
-  <div class="notice">
-    🔒 Preview Mode — limited functionality
-  </div>
-
-  <div class="notice">
-    👉 Add visitors and use date filter to see insights update
-  </div>
+  <div class="notice">🔒 Preview Mode — limited functionality</div>
+  <div class="notice">👉 Add visitors and use date filter to see insights update</div>
 
   <!-- DATE FILTER -->
   <div class="card">
@@ -131,9 +126,7 @@
 
   <div class="card">
     <button onclick="downloadCSV()">Download CSV</button>
-    <button class="disabled-feature" onclick="previewAlert()">
-      🔒 Upload CSV (Preview Mode)
-    </button>
+    <button class="disabled-feature" onclick="previewAlert()">🔒 Upload CSV (Preview Mode)</button>
     <br><br>
     <input type="file" disabled class="disabled-feature">
   </div>
@@ -177,7 +170,6 @@ function submitVisitor(){
 
   data.push(entry);
   localStorage.setItem("data", JSON.stringify(data));
-
   alert("Visitor added!");
 }
 
